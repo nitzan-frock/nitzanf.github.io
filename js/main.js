@@ -7,7 +7,7 @@ const DIFFICULTY = {
     pathLength: 8 + Math.floor(Math.random()*4),
 };
 
-const CANVAS_DIM = 500;
+const CANVAS_DIM = 300;
 
 // Initialize board and block dimension variables
 const boardL = DIFFICULTY.boardLength;
