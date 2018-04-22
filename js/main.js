@@ -88,8 +88,8 @@ const handleStart = (event) => {
             for (let k=0; k < board.dim; k++) {
                 let block = board.blocks[j][k];
                 
-                if (x < (block.coord.x + board.blockDim) && x > block.coord.x &&
-                    y < (block.coord.y + board.blockDim) && y > block.coord.y) {
+                if (x <= (block.coord.x + board.blockDim) && x >= block.coord.x &&
+                    y <= (block.coord.y + board.blockDim) && y >= block.coord.y) {
                         console.log("block coords: ("+block.coord.x+", "+block.coord.y+")");
                         if (block.blockType === 'Tile' && block.prevTile === null) {
                             console.log("touching the starting tile.");
