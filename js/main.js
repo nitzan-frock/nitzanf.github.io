@@ -1,346 +1,42 @@
+// for github
 // CONSTANTS
 // difficulty determines num of tiles on board 
 // todo: difficulty will need to be retrieved later.
 // easy = 5, medium = 7, hard = 10
 const DIFFICULTY = {
     boardLength: 5,
-    pathLength: 8 + Math.floor(Math.random()*4),
+    pathLength: 10
+    //pathLength: 20 + Math.floor(Math.random()*5),
 };
 
-const CANVAS_DIM = 300;
-
-// Initialize board and block dimension variables
-const boardL = DIFFICULTY.boardLength;
-const blockDim = CANVAS_DIM / boardL; // length (px) of each block
-const lim = boardL * blockDim - blockDim; // edge of board (limit)
-
-function startGame() {
-    console.log("Starting game!");
-    //console.log("clear board");
-    //clearBoard();
-    //const promise = clearBoard().then(result => {console.log(result)}, () => {console.log("failed to print board");});;
-    //console.log(board);
-    gameArea.start();
-    let board = initBoard(DIFFICULTY);
-    //gameArea.update(board);
-    //gameArea.update();
-}
+const CANVAS_DIM = 320;
 
 const gameArea = {
     canvas: document.createElement("canvas"),
     start: function() {
+        this.canvas.setAttribute("id", "myCanvas");
         this.canvas.height = CANVAS_DIM;
         this.canvas.width = CANVAS_DIM;
         this.canvas.style.border = "1px solid black";
         this.context = this.canvas.getContext("2d");
+        this.canvasLeft = this.canvas.offsetLeft;
+        this.canvasTop = this.canvas.offsetTop;
         document.body.insertBefore(this.canvas, document.body.childNodes[0]);
-        //this.interval = setInterval(updateGameArea, 15); // update 67 fps
     },
-    clear: function() {
+    clearCanv: function() {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     },
     update: function() {
-        this.interval = setInterval(updateGameArea, 15); // update 67 fps
+        updateGameArea();
+        window.requestAnimationFrame(gameArea.update);
     }
 }
 
-// initialize board
-const initBoard = () => {
-    let board = new Array(boardL);
-    for (let i=0; i < boardL; i++) {
-        board[i] = new Array(boardL);
-    }
-
-    // position of starting tile
-    const getFirstTile = () => {
-        const getRandCoord = () => {
-            //let coord = Math.floor(Math.random() * (boardL))*blockDim;
-            let coord = [0, lim]
-            coord = coord[getRandBool()];
-            let pos = coord / blockDim;
-
-            return {coord, pos};
-        }
-
-        const x0 = getRandCoord();
-        const y0 = getRandCoord();
-        console.log("start position {"+x0.pos+", "+y0.pos+"}");
-        board[x0.pos][y0.pos] = new Tile(x0.coord, y0.coord, "#8FD14F", false, null, null);
-
-        return board[x0.pos][y0.pos];
-    }
-    
-    const getCardinalDirections = (tile) => {
-        // direction: { x: variable coord (actual step change), y: const coord relative to tile}
-        return {
-            right: {
-                x: tile.coord.x + blockDim,
-                y: tile.coord.y
-            },
-            left:{
-                x: tile.coord.x - blockDim,
-                y: tile.coord.y
-            },
-            up: {
-                x: tile.coord.x,
-                y: tile.coord.y - blockDim
-            },
-            down: {
-                x: tile.coord.x,
-                y: tile.coord.y + blockDim
-            }
-        }
-    }
-
-    const checkAdjacentBlocks = (directions) => {
-        Object.keys(directions).map(dir => {
-            let x = (directions[dir].x)/blockDim;
-            let y = (directions[dir].y)/blockDim;
-            if (board[x][y]) {
-                console.log("adjecent block "+dir+". Removed "+dir+" direction.");
-                delete directions[dir];
-
-            }
-        });
-
-        console.log("directions left to choose");
-        console.log(directions);
-
-        return directions;
-    }
-
-    const limitTileDirections = (tile) => {
-
-        console.log("current tile is at ("+tile.coord.x/blockDim+", "+tile.coord.y/blockDim+")");
-        console.log("x coord: "+tile.coord.x+" y coord: "+tile.coord.y);
-
-        let directions = getCardinalDirections(tile);
-
-        // check board limits
-        if (tile.coord.x === 0) {
-            if (tile.coord.y === blockDim && tile.directionFromPrevTile === "left") { // corner case for (0,1)
-                delete directions.right;
-                delete directions.up;
-            } else if (tile.coord.y === (lim-blockDim) && tile.directionFromPrevTile === "left") { // corner caase for (0,3)
-                delete directions.right;
-                delete directions.down;
-            }
-            delete directions.left; // next tile can be right.        
-        } else if (tile.coord.x === lim) {
-            if (tile.coord.y === blockDim && tile.directionFromPrevTile === "right") { // corner case for (4,1)
-                delete directions.left;
-                delete directions.up;
-            } else if (tile.coord.y === (lim-blockDim) && tile.directionFromPrevTile === "right") { // corner case for (4,3)
-                delete directions.left;
-                delete directions.down;
-            }
-            delete directions.right; // next tile can be left.           
-        }
-
-        if (tile.coord.y === 0) {
-            if (tile.coord.x === blockDim && tile.directionFromPrevTile === "up") { // corner case for (1, 0)
-                console.log("   [corner case] (1,0)");
-                delete directions.left;
-                delete directions.down;
-            } else if (tile.coord.x === (lim-blockDim) && tile.directionFromPrevTile === "up") { // corner case for (3, 0)
-                console.log("   [corner case] (3,0)");
-                delete directions.right;
-                delete directions.down;
-            }
-            delete directions.up;; // next tile can be down.
-        } else if (tile.coord.y === lim) {
-            if (tile.coord.x === blockDim && tile.directionFromPrevTile === "down") { // corner case for (1, 4)
-                console.log("   [corner case] (1,4)");
-                delete directions.up;
-                delete directions.left;
-            } else if (tile.coord.x === (lim-blockDim) && tile.directionFromPrevTile === "down") { // corner case for (3,4)
-                console.log("   [corner case] (3,4)");
-                delete directions.up;
-                delete directions.right;
-            }
-            delete directions.down; // next tile can be up.
-        }
-        console.log("directions after board limits: ");
-        console.log(directions);
-
-        // check additional corner cases
-        if (tile.coord.x === blockDim && 
-        tile.coord.y === blockDim && 
-        tile.directionFromPrevTile === "up") {
-            delete directions.left;
-            delete directions.down;
-            console.log("[corner case] tile can go up or right");
-        } else if (tile.coord.x === blockDim && 
-            tile.coord.y === (lim-blockDim) && 
-            tile.directionFromPrevTile === "down") {
-                delete directions.left;
-                delete directions.up;
-                console.log("[corner case] tile can go down or right");
-        } else if (tile.coord.x === (lim-blockDim) &&
-            tile.coord.y === blockDim && 
-            tile.directionFromPrevTile === "up") {
-                delete directions.right;
-                delete directions.down;
-                console.log("[corner case] tile can go up or left");
-        } else if (tile.coord.x === (lim-blockDim) && 
-            tile.coord.y === (lim-blockDim) && 
-            tile.directionFromPrevTile === "down") {
-                delete directions.right;
-                delete directions.up;
-                console.log("[corner case] tile can go down or left");
-        }    
-        console.log("directions before checking adjacent blocks");
-        console.log(directions);
-        // Check for adjacent blocks
-        directions = checkAdjacentBlocks(directions);
-
-        console.log("possible next tiles: ");
-        Object.entries(directions).map(direction => {
-            console.log("   "+direction[0]);
-        });
-
-        return directions;
-    }
-
-    const getDirectionOfNextTile = (tile) => {
-        let directions = limitTileDirections(tile);
-        let dir = {x: 0, y: 0, direction: null};
-        let direction = null;
-
-        // choose random direction for next tile
-        if (Object.keys(directions).length > 1) {
-            const count = Object.keys(directions).length;
-            const index = Math.floor(Math.random() * count);
-            const pool = Object.keys(directions);
-            direction = pool[index]; // "up", "down", "left", "right"
-        } else {
-            direction = Object.keys(directions)[0];
-        }
-        console.log("[getDirectionOfNextTile] direction:");
-        console.log(direction);
-        if (direction){
-            console.log("direction chosen to move: "+direction);
-            if ((direction === "left") || (direction === "right")) { // move in the x direction
-                dir.x = directions[direction].x;
-                dir.y = directions[direction].y;
-                dir.direction = direction;
-            } else { // move in the y direction
-                dir.y = directions[direction].y;
-                dir.x = directions[direction].x;
-                dir.direction = direction;
-            }
-            console.log("next tile is " + dir.direction);
-        } else {
-            dir = null;
-        }
-
-        return dir;
-    }
-
-    const limitObstacleDirections = (tile) => {
-        let directions = getCardinalDirections(tile);
-
-        // check for board limits
-        if (tile.coord.x === 0) {
-            delete directions.left; // obstacle can be right.
-        } else if (tile.coord.x === lim) {
-            delete directions.right; // obstacle can be left.
-        }
-
-        if (tile.coord.y === 0) {
-            delete directions.up;; // obstacle can be down.
-        } else if (tile.coord.y === lim) {
-            delete directions.down; // obstacle can be up.
-        }
-
-        // Check for adjacent blocks
-        directions = checkAdjacentBlocks(directions);
-
-        return directions;
-    }
-
-    const generateObstacles = (currentTile) => {
-        const directions = limitObstacleDirections(currentTile);
-        let next = currentTile.nextTile;
-
-        Object.keys(directions).map(direction => {
-            let x = directions[direction].x;
-            let y = directions[direction].y;
-
-            console.log(" obstacle at {"+x/blockDim+", "+y/blockDim+"}");
-            let obstacle = new Obstacle(x, y, "#1A1A1A", false);
-            board[x/blockDim][y/blockDim] = obstacle;
-            currentTile.assocObstacles.push(obstacle);
-        });
-        console.log("obstacles generated");
-    }
-
-    let currentTile = getFirstTile();
-    console.log("path length: " +DIFFICULTY.pathLength);
-    
-    // use depth-first search to reach the path length
-    const findPath = (pathLength, currentTile) => {
-        if (pathLength) {
-            const dir = getDirectionOfNextTile(currentTile);
-            
-            console.log("[findPath] direction exists: "+dir);
-            if (dir !== null) {
-                console.log("[findPath] dir: "+dir.direction);
-                let xpos = dir.x/blockDim;
-                let ypos = dir.y/blockDim;
-                board[xpos][ypos] = new Tile(dir.x, dir.y, "#808080", false, currentTile, dir.direction);
-                currentTile.nextTile = board[xpos][ypos];
-    
-                console.log("generate obstacles from tile "+(DIFFICULTY.pathLength - pathLength));
-                generateObstacles(currentTile);
-                
-                pathLength -= 1;
-                findPath(pathLength, currentTile.nextTile);
-            } else {
-                console.log("[findPath] BACKTRACKING...");
-                // replace the currentTile with an Obstacle.
-                console.log("current tile to be removed: ("+currentTile.coord.x+", "+currentTile.coord.y+")");
-                board[currentTile.coord.x/blockDim][currentTile.coord.y/blockDim] = null;
-                board[currentTile.coord.x/blockDim][currentTile.coord.y/blockDim] = new Obstacle(currentTile.coord.x, currentTile.coord.y, "#1A1A1A", false);
-                
-                let prevTile = currentTile.prevTile;
-                console.log("prev tile: ("+prevTile.coord.x+", "+prevTile.coord.y+")");
-                // Remove all obstacles associated with the previous tile.
-                let directions = getCardinalDirections(currentTile);
-
-                console.log(prevTile.assocObstacles);
-                prevTile.assocObstacles.map(obstacle => {
-                    if (!(obstacle.coord.x === currentTile.coord.x && obstacle.coord.y === currentTile.coord.y)) {
-                        let ctx = gameArea.context;
-                        ctx.clearRect(obstacle.coord.x, obstacle.coord.y, blockDim, blockDim);
-                        board[obstacle.coord.x/blockDim][obstacle.coord.y/blockDim] = null;
-                    }
-                });                
-                
-                pathLength += 1;
-                findPath(pathLength, prevTile);
-            }
-        }
-    }
-
-    findPath(DIFFICULTY.pathLength, currentTile);
-
-    for (let i=0, l=boardL; i < l; i++) {
-        for (let j=0; j < l; j++) {
-            if (!board[i][j]) {
-                let x = i * blockDim;
-                let y = j * blockDim;
-                board[i][j] = new Obstacle(x, y, "#1A1A1A", false);
-            }
-        }
-    }
-    console.log(board);
-    return board;
-}
 
 // ******************* Helper Functions *******************
 const getRandBool = () => {
     b = Math.floor(Math.random()*2);
+
     return b;
 }
 
@@ -349,61 +45,422 @@ const genColor = () => {
     let g = 50 + Math.floor(Math.random()*150);
     let b = 50 + Math.floor(Math.random()*150);
     let color = "rgb("+r+","+g+","+b+")";
+
     return color;
 }
+
+const coord_to_pos = (x, y, dim) => {
+    return {x :x/dim, y: y/dim};
+}
+
+
+
+let board = new Board();
+
+const updateGameArea = () => {
+    gameArea.clearCanv();
+    for (let i=0, l=board.dim; i < l; i++) {
+        for (let j=0; j < l; j++) {
+            board.blocks[i][j].update();
+        }
+    }
+}
+
+const startup = () => {
+    let elem = document.getElementById("myCanvas");
+    elem.addEventListener('touchstart', handleStart, false);
+    elem.addEventListener('touchend', handleEnd, false);
+}
+
+const handleStart = (event) => {
+    event.preventDefault();
+    let elem = document.getElementById("myCanvas"),
+        context = elem.getContext("2d"),
+        touches = event.changedTouches;
+        
+    for (let i=0; i < touches.length; i++) {
+        let x = touches[i].pageX - elem.offsetLeft,
+            y = touches[i].pageY - elem.offsetTop;
+        console.log("[handleStart] touches:");
+        console.log("[handleStart] touches at ("+x+", "+y+")");
+
+        for (let j=0; j < board.dim; j++) {
+            for (let k=0; k < board.dim; k++) {
+                let block = board.blocks[j][k];
+                
+                if (x < (block.coord.x + board.blockDim) && x > block.coord.x &&
+                    y < (block.coord.y + board.blockDim) && y > block.coord.y) {
+                        console.log("block coords: ("+block.coord.x+", "+block.coord.y+")");
+                        if (block.blockType === 'Tile' && block.prevTile === null) {
+                            console.log("touching the starting tile.");
+                            board.times = [];
+                            board.timedTile = block;
+                            board.times[0] = performance.now();
+                            elem.addEventListener('touchmove', handleMove, false);
+                        }
+                        else {
+                            console.log("Not the starting tile.");
+                            elem.removeEventListener('touchmove', handleMove, false);
+                        }
+                }
+            }
+        }
+    }
+}
+
+const handleMove = (event, startTime) => {
+    event.preventDefault();
+    let elem = document.getElementById("myCanvas"),
+        context = elem.getContext("2d"),
+        touches = event.changedTouches;
+
+    for (let i=0; i < touches.length; i++) {
+        let x = touches[i].pageX - elem.offsetLeft,
+            y = touches[i].pageY - elem.offsetTop;
+        //console.log("[handleMove] touches at ("+x+", "+y+")");
+
+        if (x < CANVAS_DIM && x > board.LL &&
+            y < CANVAS_DIM && y > board.LL) {
+                for (let j=0; j < board.dim; j++) {
+                    for (let k=0; k < board.dim; k++) {
+                        let block = board.blocks[j][k];
+                        if (x < (block.coord.x + board.blockDim) && x > block.coord.x &&
+                            y < (block.coord.y + board.blockDim) && y > block.coord.y) {
+                                if (block.blockType === 'Tile' ) {
+                                    if (block === board.timedTile.nextTile) {
+                                        board.times.push(performance.now());
+                                        console.log("next block in path");
+                                        block.onStep();
+                                        //console.log("color of block: "+block.color);
+                                        board.timedTile = block;
+                                    }else if (!block.nextTile) {
+                                        board.times.push(performance.now());
+                                        elem.removeEventListener('touchmove', handleMove, false);
+                                        console.log("Finished!");
+                                        console.log(board.times);
+                                    }
+                                } else {
+                                    console.log("obstacle/wall");
+                                    block.onStep();
+                                    elem.removeEventListener('touchmove', handleMove, false);
+                                }
+                            }
+                    }
+                }
+        } else {
+            console.log("[Error] Out of bounds.");
+            elem.removeEventListener('touchmove', handleMove, false);
+        }
+        //console.log(touches[i]);
+    }
+}
+
+const handleEnd = (event) => {
+    event.preventDefault();
+    let elem = document.getElementById("myCanvas"),
+        context = elem.getContext("2d"),
+        touches = event.changedTouches;
+
+    for (let i=0; i < touches.length; i++) {
+        //ongoingTouches.push(copyTouch(touches[i]));
+        console.log("[handleEnd] Game over.");
+        board.clear();
+        board.initBoard();
+        //console.log(touches[i]);
+    }
+}
+
+// const copyTouch = (touch) => {
+//     return {identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY};
+// }
+
+const startGame = () => {
+    console.log("Starting game!");
+    gameArea.start();
+    console.log("initializing board");
+    board.initBoard();
+    console.log("board initialized");
+    console.log(board);
+    window.requestAnimationFrame(gameArea.update);
+    console.log("starting up listeners");
+    startup();
+    console.log("created listeners");
+}
+
+
+
+
 
 // ***************** OBJECTS AND CLASSES ******************
 // Object inheritance and prototpyes: 
 // https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/Inheritance
 
+// Board Object
+function Board() {
+    this.dim = DIFFICULTY.boardLength;
+    this.blockDim = CANVAS_DIM / this.dim;
+    this.UL = CANVAS_DIM - this.blockDim;
+    this.LL = 0;
+    this.blocks = null;
+    this.startTile = null;
+    this.times = [];
+    this.timedTile = null;
+
+    // initialize board
+    this.initBoard = function() {
+        this.blocks = new Array(this.dim*this.dim);
+        for (let i=0; i < this.dim; i++) {
+            this.blocks[i] = new Array(this.dim);
+        }        
+        
+        // position of starting tile
+        const getFirstTile = () => {
+            const getRandCoord = () => {
+                //let coord = Math.floor(Math.random() * (boardL))*blockDim;
+                let coord = [this.LL, this.UL][getRandBool()],
+                    pos = coord / this.blockDim;
+
+                return {coord, pos};
+            }
+
+            const x = getRandCoord();
+            const y = getRandCoord();
+            
+            this.blocks[x.pos][y.pos] = new Tile(x.coord, y.coord, this.blockDim, null);
+            this.startTile = this.blocks[x.pos][y.pos];
+            this.startTile.color = "#8BC34A"; // light green - 500
+            return this.startTile;
+        }
+        
+        const getCardinalDirections = (tile) => {
+            // direction: { x: variable coord (actual step change), y: const coord relative to tile}
+            return {
+                right: {
+                    x: tile.coord.x + this.blockDim,
+                    y: tile.coord.y
+                },
+                left:{
+                    x: tile.coord.x - this.blockDim,
+                    y: tile.coord.y
+                },
+                up: {
+                    x: tile.coord.x,
+                    y: tile.coord.y - this.blockDim
+                },
+                down: {
+                    x: tile.coord.x,
+                    y: tile.coord.y + this.blockDim
+                }
+            }
+        }
+
+        const checkAdjacentBlocks = (directions) => {
+            Object.keys(directions).map(dir => {
+                let x = (directions[dir].x)/this.blockDim,
+                    y = (directions[dir].y)/this.blockDim;
+                if (this.blocks[x][y]) {
+                    //console.log("block at ("+x+", "+y+")");
+                    delete directions[dir];
+                }
+            });
+
+            return directions;
+        }
+
+        const limitDirections = (tile) => {
+            let directions = getCardinalDirections(tile);
+
+            // check board limits
+            if (tile.coord.x === this.LL) {
+                delete directions.left; // next tile can be right.        
+            } else if (tile.coord.x === this.UL) {
+                delete directions.right; // next tile can be left.           
+            }
+
+            if (tile.coord.y === this.LL) {
+                delete directions.up; // next tile can be down.
+            } else if (tile.coord.y === this.UL) {
+                delete directions.down; // next tile can be up.
+            }
+
+            return checkAdjacentBlocks(directions);
+        }
+
+        const getDirectionOfNextTile = (tile) => {
+            let directions = limitDirections(tile),
+                dir = {x: 0, y: 0, direction: null};
+
+            if (Object.keys(directions).length > 0) { // there is a direction possible to choose
+                let count = Object.keys(directions).length,
+                    index = Math.floor(Math.random() * count);
+                dir.direction = Object.keys(directions)[index];
+
+                if ((dir.direction === "left") || 
+                    (dir.direction === "right")) { // move in the x direction
+                    dir.x = directions[dir.direction].x;
+                    dir.y = directions[dir.direction].y;
+                } else { // move in the y direction
+                    dir.y = directions[dir.direction].y;
+                    dir.x = directions[dir.direction].x;
+                }
+            } else { // only one direction possible
+                dir = null;
+            }
+            
+            return dir;
+        }
+
+        const generateObstacles = (currentTile) => {
+            const directions = limitDirections(currentTile);
+            let next = currentTile.nextTile;
+
+            Object.keys(directions).map(direction => {
+                let x = directions[direction].x,
+                    y = directions[direction].y;
+                let obstacle = new Obstacle(x, y, this.blockDim);
+                this.blocks[x/this.blockDim][y/this.blockDim] = obstacle;
+                currentTile.assocObstacles.push(obstacle);
+            });
+        }
+
+        let currentTile = getFirstTile();
+        
+        // use depth-first search to reach the path length
+        const findPath = (pathLength, currentTile) => {
+            if (pathLength) {
+                const dir = getDirectionOfNextTile(currentTile);
+
+                //console.log("current tile ("+currentTile.coord.x+", "+currentTile.coord.y+")");
+                
+                if (dir !== null) {
+                    let pos = coord_to_pos(dir.x, dir.y, this.blockDim);
+                    this.blocks[pos.x][pos.y] = new Tile(dir.x, dir.y, this.blockDim, currentTile, dir.direction);
+                    currentTile.nextTile = this.blocks[pos.x][pos.y];
+                    generateObstacles(currentTile);
+                    pathLength -= 1;
+                    findPath(pathLength, currentTile.nextTile);
+                } else {
+                    // replace the currentTile with an Obstacle.
+                    //console.log("Backtracking...");
+                    let pos = coord_to_pos(currentTile.coord.x, currentTile.coord.y, this.blockDim);
+                    this.blocks[pos.x][pos.y] = null;
+                    //console.log(currentTile);
+                    let ctx = gameArea.context;
+                    ctx.clearRect(currentTile.coord.x, currentTile.coord.y, this.blockDim, this.blockDim);
+                    this.blocks[pos.x][pos.y] = new Obstacle(currentTile.coord.x, currentTile.coord.y, this.blockDim);
+                    //this.blocks[pos.x][pos.y].color = "#987978a";
+                    
+                    let prevTile = currentTile.prevTile;
+
+                    // Remove all obstacles associated with the previous tile.
+                    // let directions = getCardinalDirections(currentTile);
+                    
+                    if (prevTile.assocObstacles) {
+                        console.log("removing associated obstacles");
+                        prevTile.assocObstacles.map((obstacle, index) => {
+
+                            if (!(obstacle.coord.x === currentTile.coord.x && obstacle.coord.y === currentTile.coord.y)) {
+                                let pos = coord_to_pos(obstacle.coord.x, obstacle.coord.y, this.blockDim);
+                                ctx.clearRect(obstacle.coord.x, obstacle.coord.y, this.blockDim, this.blockDim);
+                                prevTile.assocObstacles.splice(index, 1);
+                                this.blocks[pos.x][pos.y] = null;
+                            }
+                        });
+                    }
+
+                    pathLength += 1;
+                    findPath(pathLength, prevTile);
+                }
+            }
+        }
+
+        findPath(DIFFICULTY.pathLength, currentTile);
+
+        // fill in the rest of the board
+        let x = 0,
+            y = 0;
+        for (let i=0, l=this.dim; i < l; i++) {
+            for (let j=0; j < l; j++) {
+                if (!this.blocks[i][j]) {
+                    let x = i*this.blockDim,
+                        y = j*this.blockDim;
+                    this.blocks[i][j] = new Obstacle(x, y, this.blockDim);
+                }
+            }
+        }
+        return this.blocks;
+    }
+
+    this.clear = function() {
+        this.blocks = null;
+    }
+}
+
 // Block Object
-function Block(x, y, color, isStepped) {
+function Block(x, y, blockDim) {
     this.width = blockDim;
     this.height = blockDim;
-    this.coord = {x, y};
-    this.color = color;
-    this.isStepped = isStepped;
+    this.coord = {x: x, y: y};
+    this.color = null;
 
-    ctx = gameArea.context;
-    ctx.fillStyle = color;
-    ctx.fillRect(this.coord.x, this.coord.y, this.width, this.height);
+
 
     this.update = function() {
-        ctx = gameArea.context;
-        ctx.fillStyle = color;
+        // console.log("updating block");
+        // console.log("block color:");
+        let ctx = gameArea.context;
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.coord.x, this.coord.y, this.width, this.height);
     }
 }
 
 // Tile Object
-function Tile(x, y, color, isStepped, prevTile, direction) {
-    Block.call(this, x, y, color, isStepped);
+function Tile(x, y, blockDim, prevTile, direction) {
+    Block.call(this, x, y, blockDim);
 
+    this.color = "#00838F" // Cyan - 800
     this.prevTile = prevTile;
     this.directionFromPrevTile = direction;
     this.nextTile = null;
     this.assocObstacles =[];
-}
+    this.blockType = "Tile";
 
-Tile.prototype.onStep = () => {
-    if (this.Tile.isStepped) {
-        this.Tile.color = "#8FD14F"; // green
+    let ctx = gameArea.context;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.coord.x, this.coord.y, this.width, this.height);
+
+    this.onStep = function() {
+        this.color = "#00BCD4"; // Cyan - 500
     }
 }
+
+// Tile.prototype.onStep = () => {
+//     this.Tile.color = "#00BCD4"; // Cyan - 500
+// }
 
 Tile.prototype = Object.create(Block.prototype);
 Tile.prototype.constructor = Tile;
 
 // Obstacle Object
-function Obstacle(x, y, color, isStepped) {
-    Block.call(this, x, y, color, isStepped);
+function Obstacle(x, y, blockDim) {
+    Block.call(this, x, y, blockDim);
+
+    this.blockType = "Obstacle";
+    this.color = "#212121"; // Grey - 900
+
+    let ctx = gameArea.context;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.coord.x, this.coord.y, this.width, this.height);
+
+    this.onStep = function() {
+        this.color = "#C62828"; // red - 800
+    }
+    
 }
 
-Obstacle.prototype.onStep = () => {
-    if (this.Obstacle.isStepped) {
-        this.Obstacle.color = "#F24726"; // red
-    }
-}
+// Obstacle.prototype.onStep = () => {
+//     this.Obstacle.color = "#C62828"; // red - 800
+// }
 
 Obstacle.prototype = Object.create(Block.prototype);
-Obstacle.prototype.constructor = Obstacle 
+Obstacle.prototype.constructor = Obstacle;
