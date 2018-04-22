@@ -164,8 +164,14 @@ const handleEnd = (event) => {
     for (let i=0; i < touches.length; i++) {
         //ongoingTouches.push(copyTouch(touches[i]));
         console.log("[handleEnd] Game over.");
-        board.clear();
-        board.initBoard();
+        let reset_btn = document.createElement("button");
+        let t = document.createTextNode("RESET ");
+        reset_btn.appendChild(t);
+        document.body.appendChild(reset_btn);
+        reset_btn.addEventListener("click", () => {
+            board.clear();
+            board.initBoard();
+        });
         //console.log(touches[i]);
     }
 }
