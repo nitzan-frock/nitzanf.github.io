@@ -1,0 +1,7 @@
+canvas {
+    z-index: 10;
+}
+
+button {
+    z-index: 20;
+}
