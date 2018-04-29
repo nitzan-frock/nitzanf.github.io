@@ -3,8 +3,8 @@
 // todo: difficulty will need to be retrieved later.
 // easy = 5, medium = 7, hard = 10
 const DIFFICULTY = {
-    boardLength: 5,
-    pathLength: 10
+    boardLength: 20,
+    pathLength: 140
     //pathLength: 20 + Math.floor(Math.random()*5),
 };
 
@@ -48,8 +48,8 @@ const genColor = () => {
     return color;
 }
 
-const coord_to_pos = (x, y, dim) => {
-    return {x : parseInt(x/dim), y: parseInt(y/dim)};
+const coord_to_pos = (x, y, blockDim) => {
+    return {x : parseInt(x/blockDim), y: parseInt(y/blockDim)};
 }
 
 // ****** MAIN ***********
@@ -136,6 +136,9 @@ const handleMove = (event) => {
                                 console.log("Finished!");
                                 console.log(board.times);
                             }
+                        }else if (block === board.timedTile.prevTile) { // cannot move backwards.
+                            board.timedTile.prevTile.color = "#C62828";
+                            elem.removeEventListener('touchmove', handleMove, false);
                         } else if (block !== board.timedTile) {
                             // moved through a corner skipping the next tile.
                             console.log("moved through corner");
@@ -258,8 +261,8 @@ function Board() {
         // position of starting tile
         const getFirstTile = () => {
             const getRandCoord = () => {
-                //let coord = Math.floor(Math.random() * (boardL))*blockDim;
-                let coord = [this.LL, this.UL][getRandBool()],
+                let coord = Math.floor(Math.random() * (this.dim))*this.blockDim, // any starting position
+                //let coord = [this.LL, this.UL][getRandBool()], // corner starting position
                     pos = coord / this.blockDim;
 
                 return {coord, pos};
@@ -364,13 +367,15 @@ function Board() {
                 currentTile.assocObstacles.push(obstacle);
             });
         }
-
-        let currentTile = getFirstTile();
         
         // use depth-first search to reach the path length
         const findPath = (pathLength, currentTile) => {
+            if (!currentTile) {
+                currentTile = getFirstTile();
+            }
             if (pathLength) {
                 const dir = getDirectionOfNextTile(currentTile);
+                let ctx = gameArea.context;
 
                 //console.log("current tile ("+currentTile.coord.x+", "+currentTile.coord.y+")");
                 
@@ -381,13 +386,12 @@ function Board() {
                     generateObstacles(currentTile);
                     pathLength -= 1;
                     findPath(pathLength, currentTile.nextTile);
-                } else {
+                } else if (currentTile !== this.startTile) {
                     // replace the currentTile with an Obstacle.
                     //console.log("Backtracking...");
                     let pos = coord_to_pos(currentTile.coord.x, currentTile.coord.y, this.blockDim);
                     this.blocks[pos.x][pos.y] = null;
                     //console.log(currentTile);
-                    let ctx = gameArea.context;
                     ctx.clearRect(currentTile.coord.x, currentTile.coord.y, this.blockDim, this.blockDim);
                     this.blocks[pos.x][pos.y] = new Obstacle(currentTile.coord.x, currentTile.coord.y, this.blockDim);
                     //this.blocks[pos.x][pos.y].color = "#987978a";
@@ -401,21 +405,37 @@ function Board() {
                         console.log("removing associated obstacles");
                         prevTile.assocObstacles.map((obstacle, index) => {
 
-                            if (!(obstacle.coord.x === currentTile.coord.x && obstacle.coord.y === currentTile.coord.y)) {
-                                let pos = coord_to_pos(obstacle.coord.x, obstacle.coord.y, this.blockDim);
-                                ctx.clearRect(obstacle.coord.x, obstacle.coord.y, this.blockDim, this.blockDim);
-                                prevTile.assocObstacles.splice(index, 1);
-                                this.blocks[pos.x][pos.y] = null;
-                            }
+                            let pos = coord_to_pos(obstacle.coord.x, obstacle.coord.y, this.blockDim);
+                            ctx.clearRect(obstacle.coord.x, obstacle.coord.y, this.blockDim, this.blockDim);
+                            prevTile.assocObstacles.splice(index, 1);
+                            this.blocks[pos.x][pos.y] = null;
+
+                            // if (!(obstacle.coord.x === currentTile.coord.x && obstacle.coord.y === currentTile.coord.y)) {
+                            //     let pos = coord_to_pos(obstacle.coord.x, obstacle.coord.y, this.blockDim);
+                            //     ctx.clearRect(obstacle.coord.x, obstacle.coord.y, this.blockDim, this.blockDim);
+                            //     prevTile.assocObstacles.splice(index, 1);
+                            //     this.blocks[pos.x][pos.y] = null;
+                            // }
                         });
                     }
 
                     pathLength += 1;
                     findPath(pathLength, prevTile);
+                } else {
+                    console.log("backtracked to starting tile");
+                    this.clear();
+                    console.log(currentTile === this.startTile);
+                    let x = this.startTile.coord.x,
+                        y = this.startTile.coord.y;
+                    
+                    let pos = coord_to_pos(x, y, this.blockDim);
+                    this.blocks[pos.x][pos.y] = this.startTile;
+                    findPath(DIFFICULTY.pathLength, this.startTile);
                 }
             }
         }
 
+        let currentTile = null;
         findPath(DIFFICULTY.pathLength, currentTile);
 
         // fill in the rest of the board
@@ -434,7 +454,10 @@ function Board() {
     }
 
     this.clear = function() {
-        this.blocks = null;
+        this.blocks = new Array(this.dim*this.dim);
+        for (let i=0; i < this.dim; i++) {
+            this.blocks[i] = new Array(this.dim);
+        }
     }
 }
 
