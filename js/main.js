@@ -1,4 +1,3 @@
-// for github
 // CONSTANTS
 // difficulty determines num of tiles on board 
 // todo: difficulty will need to be retrieved later.
@@ -50,10 +49,10 @@ const genColor = () => {
 }
 
 const coord_to_pos = (x, y, dim) => {
-    return {x :x/dim, y: y/dim};
+    return {x : parseInt(x/dim), y: parseInt(y/dim)};
 }
 
-
+// ****** MAIN ***********
 
 let board = new Board();
 
@@ -108,7 +107,7 @@ const handleStart = (event) => {
     }
 }
 
-const handleMove = (event, startTime) => {
+const handleMove = (event) => {
     event.preventDefault();
     let elem = document.getElementById("myCanvas"),
         context = elem.getContext("2d"),
@@ -121,31 +120,68 @@ const handleMove = (event, startTime) => {
 
         if (x < CANVAS_DIM && x > board.LL &&
             y < CANVAS_DIM && y > board.LL) {
-                for (let j=0; j < board.dim; j++) {
-                    for (let k=0; k < board.dim; k++) {
-                        let block = board.blocks[j][k];
-                        if (x < (block.coord.x + board.blockDim) && x > block.coord.x &&
-                            y < (block.coord.y + board.blockDim) && y > block.coord.y) {
-                                if (block.blockType === 'Tile' ) {
-                                    if (block === board.timedTile.nextTile) {
-                                        board.times.push(performance.now());
-                                        console.log("next block in path");
-                                        block.onStep();
-                                        //console.log("color of block: "+block.color);
-                                        board.timedTile = block;
-                                    }else if (!block.nextTile) {
-                                        board.times.push(performance.now());
-                                        elem.removeEventListener('touchmove', handleMove, false);
-                                        console.log("Finished!");
-                                        console.log(board.times);
-                                    }
-                                } else {
-                                    console.log("obstacle/wall");
-                                    block.onStep();
-                                    elem.removeEventListener('touchmove', handleMove, false);
-                                }
+                let pos = coord_to_pos(x, y, board.blockDim);
+                let block = board.blocks[pos.x][pos.y];
+
+                if (block.blockType === 'Tile') {
+                    if (block !== board.startTile) {
+                        if (block === board.timedTile.nextTile) {
+                            board.times.push(performance.now());
+                            console.log("next block in path");
+                            console.log(pos.x,", ", pos.y);
+                            block.onStep();
+                            board.timedTile = board.timedTile.nextTile;
+                            if (!block.nextTile) {
+                                elem.removeEventListener('touchmove', handleMove, false);
+                                console.log("Finished!");
+                                console.log(board.times);
                             }
+                        } else if (block !== board.timedTile) {
+                            // moved through a corner skipping the next tile.
+                            console.log("moved through corner");
+                            let current = board.timedTile,
+                                corner = board.timedTile.nextTile,
+                                next = corner.nextTile;
+
+                            let cur = coord_to_pos(current.coord.x, current.coord.y, board.blockDim);
+                            // obstacle in 1st quadrant
+                            if (corner.directionFromPrevTile === "L" && next.directionFromPrevTile === "U") {
+                                board.blocks[cur.x][cur.y-1].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+                            } else if (corner.directionFromPrevTile === "D" && next.directionFromPrevTile === "R") {
+                                board.blocks[cur.x+1][cur.y].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+
+                            // obstacle in 2nd quadrant
+                            } else if (corner.directionFromPrevTile === "D" && next.directionFromPrevTile === "L") {
+                                board.blocks[cur.x-1][cur.y].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+                            } else if (corner.directionFromPrevTile === "R" && next.directionFromPrevTile === "U") {
+                                board.blocks[cur.x][cur.y-1].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+
+                            // obstacle in 3rd quadrant
+                            } else if (corner.directionFromPrevTile === "R" && next.directionFromPrevTile === "D") {
+                                board.blocks[cur.x][cur.y+1].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+                            } else if (corner.directionFromPrevTile === "U" && next.directionFromPrevTile === "L") {
+                                board.blocks[cur.x-1][cur.y].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+
+                            // obstacle in 4th quadrant
+                            } else if (corner.directionFromPrevTile === "L" && next.directionFromPrevTile === "D") {
+                                board.blocks[cur.x][cur.y+1].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+                            } else if (corner.directionFromPrevTile === "U" && next.directionFromPrevTile === "R") {
+                                board.blocks[cur.x+1][cur.y].onStep();
+                                elem.removeEventListener('touchmove', handleMove, false);
+                            }
+                        }
                     }
+                } else {
+                    console.log("obstacle/wall");
+                    block.onStep();
+                    elem.removeEventListener('touchmove', handleMove, false);
                 }
         } else {
             console.log("[Error] Out of bounds.");
@@ -160,20 +196,20 @@ const handleEnd = (event) => {
     let elem = document.getElementById("myCanvas"),
         context = elem.getContext("2d"),
         touches = event.changedTouches;
+    
+        console.log("game over");
+    board.clear();
+    board.initBoard();
 
-    for (let i=0; i < touches.length; i++) {
-        //ongoingTouches.push(copyTouch(touches[i]));
-        console.log("[handleEnd] Game over.");
-        let reset_btn = document.createElement("button");
-        let t = document.createTextNode("RESET ");
-        reset_btn.appendChild(t);
-        document.body.appendChild(reset_btn);
-        reset_btn.addEventListener("click", () => {
-            board.clear();
-            board.initBoard();
-        });
-        //console.log(touches[i]);
-    }
+
+    // for (let i=0; i < touches.length; i++) {
+    //     //ongoingTouches.push(copyTouch(touches[i]));
+    //     console.log("[handleEnd] Game over.");
+    //     alert("Game over, reset?");
+    //     board.clear();
+    //     board.initBoard();
+    //     //console.log(touches[i]);
+    // }
 }
 
 // const copyTouch = (touch) => {
@@ -241,19 +277,19 @@ function Board() {
         const getCardinalDirections = (tile) => {
             // direction: { x: variable coord (actual step change), y: const coord relative to tile}
             return {
-                right: {
+                R: {
                     x: tile.coord.x + this.blockDim,
                     y: tile.coord.y
                 },
-                left:{
+                L:{
                     x: tile.coord.x - this.blockDim,
                     y: tile.coord.y
                 },
-                up: {
+                U: {
                     x: tile.coord.x,
                     y: tile.coord.y - this.blockDim
                 },
-                down: {
+                D: {
                     x: tile.coord.x,
                     y: tile.coord.y + this.blockDim
                 }
@@ -278,15 +314,15 @@ function Board() {
 
             // check board limits
             if (tile.coord.x === this.LL) {
-                delete directions.left; // next tile can be right.        
+                delete directions.L; // next tile can be right.        
             } else if (tile.coord.x === this.UL) {
-                delete directions.right; // next tile can be left.           
+                delete directions.R; // next tile can be left.           
             }
 
             if (tile.coord.y === this.LL) {
-                delete directions.up; // next tile can be down.
+                delete directions.U; // next tile can be down.
             } else if (tile.coord.y === this.UL) {
-                delete directions.down; // next tile can be up.
+                delete directions.D; // next tile can be up.
             }
 
             return checkAdjacentBlocks(directions);
@@ -301,8 +337,8 @@ function Board() {
                     index = Math.floor(Math.random() * count);
                 dir.direction = Object.keys(directions)[index];
 
-                if ((dir.direction === "left") || 
-                    (dir.direction === "right")) { // move in the x direction
+                if ((dir.direction === "L") || 
+                    (dir.direction === "R")) { // move in the x direction
                     dir.x = directions[dir.direction].x;
                     dir.y = directions[dir.direction].y;
                 } else { // move in the y direction
