@@ -3,8 +3,8 @@
 // todo: difficulty will need to be retrieved later.
 // easy = 5, medium = 7, hard = 10
 const DIFFICULTY = {
-    boardLength: 20,
-    pathLength: 140
+    boardLength: 10,
+    pathLength: 50
     //pathLength: 20 + Math.floor(Math.random()*5),
 };
 
